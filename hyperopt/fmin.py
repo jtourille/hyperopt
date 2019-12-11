@@ -9,6 +9,7 @@ import logging
 import os
 import sys
 import time
+import pika
 from tqdm import tqdm
 
 import numpy as np
@@ -119,6 +120,7 @@ class FMinIter(object):
         max_evals=sys.maxsize,
         verbose=False,
         show_progressbar=True,
+        broker_url: str = None
     ):
         self.algo = algo
         self.domain = domain
@@ -138,6 +140,7 @@ class FMinIter(object):
         self.max_evals = max_evals
         self.rstate = rstate
         self.verbose = verbose
+        self.broker_url = broker_url
 
         if self.asynchronous:
             if "FMinIter_Domain" in trials.attachments:
@@ -236,9 +239,26 @@ class FMinIter(object):
             all_trials_complete = False
             while n_queued < N or (block_until_done and not all_trials_complete):
                 qlen = get_queue_len()
-                while (
-                    qlen < self.max_queue_len and n_queued < N and not self.is_cancelled
-                ):
+
+                while qlen < self.max_queue_len and n_queued < N and not self.is_cancelled:
+
+                    parameters = pika.URLParameters(self.broker_url)
+                    connection = pika.BlockingConnection(parameters)
+                    channel = connection.channel()
+                    queue_state = channel.queue_declare(queue=self.trials._exp_key)
+                    queue_empty = queue_state.method.message_count == 0
+
+                    if not queue_empty:
+                        method, properties, body = channel.basic_get(self.trials._exp_key)
+                        channel.basic_ack(method.delivery_tag)
+
+                        body = body.decode("UTF-8")
+                        if body == "stop":
+                            stopped = True
+                            break
+
+                    connection.close()
+
                     n_to_enqueue = min(self.max_queue_len - qlen, N - n_queued)
                     new_ids = trials.new_trial_ids(n_to_enqueue)
                     self.trials.refresh()
@@ -332,6 +352,7 @@ def fmin(
     points_to_evaluate=None,
     max_queue_len=1,
     show_progressbar=True,
+    broker_url: str = None
 ):
     """Minimize a function over a hyperparameter space.
 
@@ -449,6 +470,7 @@ def fmin(
             catch_eval_exceptions=catch_eval_exceptions,
             return_argmin=return_argmin,
             show_progressbar=show_progressbar,
+            broker_url=broker_url
         )
 
     if trials is None:
@@ -469,6 +491,7 @@ def fmin(
         verbose=verbose,
         max_queue_len=max_queue_len,
         show_progressbar=show_progressbar,
+        broker_url=broker_url
     )
     rval.catch_eval_exceptions = catch_eval_exceptions
     rval.exhaust()
