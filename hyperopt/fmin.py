@@ -354,7 +354,8 @@ def fmin(
     points_to_evaluate=None,
     max_queue_len=1,
     show_progressbar=True,
-    broker_url: str = None
+    broker_url: str = None,
+    queue_name: str = None
 ):
     """Minimize a function over a hyperparameter space.
 
@@ -472,7 +473,8 @@ def fmin(
             catch_eval_exceptions=catch_eval_exceptions,
             return_argmin=return_argmin,
             show_progressbar=show_progressbar,
-            broker_url=broker_url
+            broker_url=broker_url,
+            queue_name=queue_name
         )
 
     if trials is None:
@@ -493,7 +495,8 @@ def fmin(
         verbose=verbose,
         max_queue_len=max_queue_len,
         show_progressbar=show_progressbar,
-        broker_url=broker_url
+        broker_url=broker_url,
+        queue_name=queue_name
     )
     rval.catch_eval_exceptions = catch_eval_exceptions
     rval.exhaust()
