@@ -120,7 +120,8 @@ class FMinIter(object):
         max_evals=sys.maxsize,
         verbose=False,
         show_progressbar=True,
-        broker_url: str = None
+        broker_url: str = None,
+        queue_name: str = None
     ):
         self.algo = algo
         self.domain = domain
@@ -141,6 +142,7 @@ class FMinIter(object):
         self.rstate = rstate
         self.verbose = verbose
         self.broker_url = broker_url
+        self.queue_name = queue_name
 
         if self.asynchronous:
             if "FMinIter_Domain" in trials.attachments:
@@ -245,12 +247,11 @@ class FMinIter(object):
                     parameters = pika.URLParameters(self.broker_url)
                     connection = pika.BlockingConnection(parameters)
                     channel = connection.channel()
-                    queue_name = self.trials._exp_key.split("__________")[0]
-                    queue_state = channel.queue_declare(queue=queue_name)
+                    queue_state = channel.queue_declare(queue=self.queue_name)
                     queue_empty = queue_state.method.message_count == 0
 
                     if not queue_empty:
-                        method, properties, body = channel.basic_get(queue_name)
+                        method, properties, body = channel.basic_get(self.queue_name)
                         channel.basic_ack(method.delivery_tag)
 
                         body = body.decode("UTF-8")
