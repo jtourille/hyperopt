@@ -245,11 +245,12 @@ class FMinIter(object):
                     parameters = pika.URLParameters(self.broker_url)
                     connection = pika.BlockingConnection(parameters)
                     channel = connection.channel()
-                    queue_state = channel.queue_declare(queue=self.trials._exp_key)
+                    queue_name = self.trials._exp_key.split("__________")[0]
+                    queue_state = channel.queue_declare(queue=queue_name)
                     queue_empty = queue_state.method.message_count == 0
 
                     if not queue_empty:
-                        method, properties, body = channel.basic_get(self.trials._exp_key)
+                        method, properties, body = channel.basic_get(queue_name)
                         channel.basic_ack(method.delivery_tag)
 
                         body = body.decode("UTF-8")
