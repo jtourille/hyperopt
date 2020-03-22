@@ -626,7 +626,8 @@ class Trials(object):
         catch_eval_exceptions=False,
         return_argmin=True,
         show_progressbar=True,
-        broker_url: str = None
+        broker_url: str = None,
+        queue_name: str = None
     ):
         """Minimize a function over a hyperparameter space.
 
@@ -665,7 +666,8 @@ class Trials(object):
             catch_eval_exceptions=catch_eval_exceptions,
             return_argmin=return_argmin,
             show_progressbar=show_progressbar,
-            broker_url=broker_url
+            broker_url=broker_url,
+            queue_name=queue_name
         )
 
 
